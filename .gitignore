@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+.env.local
+*.log
+
+# Node
+node_modules/
+.next/
+out/
+.npm
+.pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+coverage/
+
+# Misc
+*.bak
+*.tmp
+*.swp
