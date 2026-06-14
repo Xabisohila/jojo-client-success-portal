@@ -130,6 +130,13 @@ export const approveJojoConfig = (clientId: string, configId: string, payload: {
 export const regenerateJojoConfig = (clientId: string): Promise<void> =>
   api.post(`/clients/${clientId}/config/regenerate`).then((r) => r.data);
 
+export const updateKnowledgeBase = (
+  clientId: string,
+  configId: string,
+  kb: { business_name?: string; business_hours?: string; timezone?: string; services: string[]; faqs: { question: string; answer: string }[] }
+): Promise<JojoConfig> =>
+  api.patch(`/clients/${clientId}/config/${configId}/knowledge-base`, kb).then((r) => r.data);
+
 // ── Implementation ────────────────────────────────────────────────────────
 export const getImplementation = (clientId: string): Promise<ImplementationProject> =>
   api.get(`/clients/${clientId}/implementation`).then((r) => r.data);

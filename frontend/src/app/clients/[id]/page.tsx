@@ -20,6 +20,7 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Zap, HeartPulse, Plus, RefreshCw
 import { toast } from "sonner";
 import type { Onboarding, ImplementationTask, JojoConfig, CustomerHealth, Checkin, NpsResponse } from "@/types";
 import { RenewalsTab } from "./RenewalsTab";
+import { KnowledgeBaseEditor } from "./KnowledgeBaseEditor";
 
 const CLIENT_STATUS_LABELS: Record<string, string> = {
   onboarding: "Onboarding", implementation: "Implementation",
@@ -508,26 +509,8 @@ function ConfigView({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {/* Knowledge base stats */}
-      {config.knowledge_base && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-semibold text-gray-800 mb-3">Knowledge Base</h3>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{((config.knowledge_base as Record<string, unknown[]>)["faqs"] ?? []).length}</p>
-              <p className="text-xs text-gray-500 mt-1">FAQs loaded</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{((config.knowledge_base as Record<string, unknown[]>)["services"] ?? []).length}</p>
-              <p className="text-xs text-gray-500 mt-1">Services</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-brand-600">✓</p>
-              <p className="text-xs text-gray-500 mt-1">Policies loaded</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Knowledge base editor */}
+      <KnowledgeBaseEditor config={config} clientId={clientId} />
 
       {/* Gate 5 — Config Approval */}
       {config.status === "pending_review" && (

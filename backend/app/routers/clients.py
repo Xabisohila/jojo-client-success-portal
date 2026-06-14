@@ -190,6 +190,22 @@ def update_config(client_id: uuid.UUID, config_id: uuid.UUID, payload: JojoConfi
     return config
 
 
+@router.patch("/clients/{client_id}/config/{config_id}/knowledge-base", response_model=JojoConfigOut)
+def update_knowledge_base(
+    client_id: uuid.UUID,
+    config_id: uuid.UUID,
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    config = db.query(JojoConfig).filter(JojoConfig.id == config_id, JojoConfig.client_id == client_id).first()
+    if not config:
+        raise HTTPException(404, "Config not found.")
+    config.knowledge_base = payload
+    db.commit()
+    db.refresh(config)
+    return config
+
+
 @router.post("/clients/{client_id}/config/{config_id}/approve", response_model=JojoConfigOut)
 def approve_config(
     client_id: uuid.UUID,
