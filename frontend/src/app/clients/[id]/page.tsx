@@ -471,7 +471,7 @@ function ConfigView({ clientId }: { clientId: string }) {
         <div className="space-y-3">
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Missed Call WhatsApp Message</p>
-            <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brand-900 italic">&ldquo;{config.missed_call_message}&rdquo;</div>
+            <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brand-900 italic">&ldquo;{config.greeting_message}&rdquo;</div>
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">After Hours</p>

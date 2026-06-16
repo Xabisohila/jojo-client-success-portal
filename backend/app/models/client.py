@@ -100,9 +100,14 @@ class JojoConfig(Base):
     # generating → draft → pending_review → approved → deployed
 
     # AI-generated content
-    missed_call_message: Mapped[Optional[str]] = mapped_column(Text)
+    # NOTE: columns are still named greeting_message/call_flow in the DB (migration
+    # 006 renaming them to missed_call_message/conversation_flow is written but not
+    # yet applied — needs Postgres table-owner privileges this app's role lacks).
+    # The content/behavior fix (no live voice AI, WhatsApp-first flow) lives in the
+    # prompts and fallback text in config_generator.py, not in these column names.
+    greeting_message: Mapped[Optional[str]] = mapped_column(Text)
     after_hours_message: Mapped[Optional[str]] = mapped_column(Text)
-    conversation_flow: Mapped[Optional[dict]] = mapped_column(JSONB)
+    call_flow: Mapped[Optional[dict]] = mapped_column(JSONB)
     booking_rules: Mapped[Optional[dict]] = mapped_column(JSONB)
     escalation_rules: Mapped[Optional[list]] = mapped_column(JSONB)
     knowledge_base: Mapped[Optional[dict]] = mapped_column(JSONB)

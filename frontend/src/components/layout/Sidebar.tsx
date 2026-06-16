@@ -1,11 +1,14 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, Users, ClipboardList, FileText,
-  Settings, Zap, Building2, HeartPulse, RefreshCcw
+  Settings, Zap, Building2, HeartPulse, RefreshCcw, LogOut
 } from "lucide-react";
 import { clsx } from "clsx";
+import { useAuth } from "@/lib/auth-context";
+import { logout } from "@/lib/api";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +23,16 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    qc.clear();
+    router.replace("/login");
+  }
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
       <div className="px-6 py-5 border-b border-gray-200 flex items-center gap-3">
@@ -51,7 +64,25 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-4 py-4 border-t border-gray-200">
+      <div className="px-4 py-4 border-t border-gray-200 space-y-3">
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center shrink-0">
+              {user.full_name.charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-gray-900 truncate">{user.full_name}</p>
+              <p className="text-xs text-gray-400 truncate capitalize">{user.role}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Log out"
+              className="ml-auto p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <p className="text-xs text-gray-400">Jojo Client Success Portal v1.0</p>
       </div>
     </aside>

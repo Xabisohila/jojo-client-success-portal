@@ -136,18 +136,18 @@ All messages must read naturally as WhatsApp text messages, not spoken scripts �
                 messages=[{"role": "user", "content": prompt}],
             )
             result = json.loads(response.content[0].text)
-            config.missed_call_message = result.get("missed_call_message", "")
+            config.greeting_message = result.get("missed_call_message", "")
             config.after_hours_message = result.get("after_hours_message", "")
-            config.conversation_flow = result.get("conversation_flow", {})
+            config.call_flow = result.get("conversation_flow", {})
             config.booking_rules = result.get("booking_rules", {})
             config.escalation_rules = result.get("escalation_rules", [])
             config.knowledge_base = result.get("knowledge_base", {})
             config.config_summary = result.get("config_summary", "")
         except Exception as e:
             logger.warning(f"Claude config generation failed for onboarding {onboarding_id}, using template fallback: {e}")
-            config.missed_call_message = f"Hi! Sorry we missed your call to {business} — this is Jojo. How can I help you today?"
+            config.greeting_message = f"Hi! Sorry we missed your call to {business} — this is Jojo. How can I help you today?"
             config.after_hours_message = f"Thanks for reaching out to {business}. We're closed right now ({hours_str}), but I can help here on WhatsApp or get you booked in for when we reopen."
-            config.conversation_flow = {"steps": [{"id": "missed_call_text", "type": "message", "text": config.missed_call_message}]}
+            config.call_flow = {"steps": [{"id": "missed_call_text", "type": "message", "text": config.greeting_message}]}
             config.booking_rules = {"calendar_system": ob.calendar_system or "manual", "appointment_fields": ["name", "phone", "reason"], "confirmation_method": "whatsapp"}
             config.escalation_rules = [{"trigger": "complaint", "priority": "high", "action": "notify_staff"}]
             config.knowledge_base = {"business_name": business, "business_hours": hours_str, "services": services, "faqs": faqs}

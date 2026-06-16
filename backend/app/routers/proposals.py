@@ -5,15 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.proposal import Proposal, ProposalLineItem
+from app.models.user import User
 from app.schemas.proposal import (
     ProposalOut, ProposalListItem, ProposalUpdate, ProposalApprove, ProposalReject,
 )
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
-
-SYSTEM_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 def _get_or_404(db: Session, proposal_id: uuid.UUID) -> Proposal:
@@ -77,12 +77,12 @@ def submit_proposal(proposal_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{proposal_id}/approve", response_model=ProposalOut)
-def approve_proposal(proposal_id: uuid.UUID, payload: ProposalApprove, db: Session = Depends(get_db)):
+def approve_proposal(proposal_id: uuid.UUID, payload: ProposalApprove, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     proposal = _get_or_404(db, proposal_id)
     if proposal.status != "pending_approval":
         raise HTTPException(status_code=400, detail="Proposal must be pending_approval to approve.")
     proposal.status = "approved"
-    proposal.approved_by = SYSTEM_USER_ID
+    proposal.approved_by = current_user.id
     proposal.approved_at = datetime.now(timezone.utc)
     if payload.reviewer_notes:
         proposal.reviewer_notes = payload.reviewer_notes

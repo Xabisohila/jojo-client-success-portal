@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.lead import Lead, LeadActivity, LeadStatusHistory
+from app.models.user import User
 from app.schemas.lead import (
     LeadCreate, LeadUpdate, LeadOut, LeadListItem,
     LeadQualify, LeadDisqualify, ActivityCreate, ActivityOut, PipelineSummary
@@ -13,8 +15,6 @@ from app.schemas.lead import (
 from app.services.ai_scoring import score_lead
 
 router = APIRouter(prefix="/leads", tags=["leads"])
-
-SYSTEM_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 def _log_status_change(db: Session, lead: Lead, to_status: str, changed_by: uuid.UUID, note: Optional[str] = None):
@@ -130,14 +130,14 @@ def rescore_lead(lead_id: uuid.UUID, background_tasks: BackgroundTasks, db: Sess
 
 
 @router.post("/{lead_id}/qualify", response_model=LeadOut)
-def qualify_lead(lead_id: uuid.UUID, payload: LeadQualify, db: Session = Depends(get_db)):
+def qualify_lead(lead_id: uuid.UUID, payload: LeadQualify, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found.")
     if lead.status in ("disqualified", "converted"):
         raise HTTPException(status_code=400, detail=f"Cannot qualify a lead with status '{lead.status}'.")
 
-    _log_status_change(db, lead, "qualified", SYSTEM_USER_ID, payload.note)
+    _log_status_change(db, lead, "qualified", current_user.id, payload.note)
     lead.status = "qualified"
     db.commit()
     db.refresh(lead)
@@ -145,14 +145,14 @@ def qualify_lead(lead_id: uuid.UUID, payload: LeadQualify, db: Session = Depends
 
 
 @router.post("/{lead_id}/disqualify", response_model=LeadOut)
-def disqualify_lead(lead_id: uuid.UUID, payload: LeadDisqualify, db: Session = Depends(get_db)):
+def disqualify_lead(lead_id: uuid.UUID, payload: LeadDisqualify, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found.")
     if lead.status == "converted":
         raise HTTPException(status_code=400, detail="Cannot disqualify a converted lead.")
 
-    _log_status_change(db, lead, "disqualified", SYSTEM_USER_ID, payload.reason)
+    _log_status_change(db, lead, "disqualified", current_user.id, payload.reason)
     lead.status = "disqualified"
     lead.disqualified_reason = payload.reason
     db.commit()

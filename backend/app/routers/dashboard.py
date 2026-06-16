@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models.lead import Lead, LeadActivity
 from app.models.assessment import Assessment
 from app.models.proposal import Proposal
+from app.models.client import Client
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -20,6 +21,11 @@ class DashboardSummary(BaseModel):
     proposals_pending_approval: int
     proposals_sent: int
     proposals_accepted: int
+    clients_onboarding: int
+    clients_implementation: int
+    clients_go_live: int
+    clients_active: int
+    clients_churned: int
 
 
 class RecentActivityItem(BaseModel):
@@ -36,6 +42,10 @@ def get_summary(db: Session = Depends(get_db)):
         row[0]: row[1]
         for row in db.query(Lead.status, func.count(Lead.id)).group_by(Lead.status).all()
     }
+    client_counts = {
+        row[0]: row[1]
+        for row in db.query(Client.status, func.count(Client.id)).group_by(Client.status).all()
+    }
     return DashboardSummary(
         leads_total=sum(lead_counts.values()),
         leads_new=lead_counts.get("new", 0),
@@ -45,6 +55,11 @@ def get_summary(db: Session = Depends(get_db)):
         proposals_pending_approval=db.query(Proposal).filter(Proposal.status == "pending_approval").count(),
         proposals_sent=db.query(Proposal).filter(Proposal.status == "sent").count(),
         proposals_accepted=db.query(Proposal).filter(Proposal.status == "accepted").count(),
+        clients_onboarding=client_counts.get("onboarding", 0),
+        clients_implementation=client_counts.get("implementation", 0),
+        clients_go_live=client_counts.get("go_live", 0),
+        clients_active=client_counts.get("active", 0),
+        clients_churned=client_counts.get("churned", 0),
     )
 
 

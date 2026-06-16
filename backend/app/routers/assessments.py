@@ -3,9 +3,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.lead import Lead
 from app.models.assessment import Assessment, AssessmentSection, AssessmentResponse
+from app.models.user import User
 from app.schemas.assessment import (
     AssessmentCreate, AssessmentOut, AssessmentListItem,
     SectionResponsesUpdate, AssessmentApprove, AssessmentRequestChanges,
@@ -14,7 +16,6 @@ from app.services.assessment_scoring import score_assessment, get_questions_for_
 
 router = APIRouter(tags=["assessments"])
 
-SYSTEM_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 SECTION_TYPES = ["business", "operational", "technology", "leadership"]
 
 
@@ -27,12 +28,12 @@ def _get_or_404(db: Session, model, id: uuid.UUID, label: str):
 
 # ── Create assessment for a lead ──────────────────────────────────────────
 @router.post("/leads/{lead_id}/assessments", response_model=AssessmentOut, status_code=201)
-def create_assessment(lead_id: uuid.UUID, db: Session = Depends(get_db)):
+def create_assessment(lead_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     lead = _get_or_404(db, Lead, lead_id, "Lead")
     if lead.status != "qualified":
         raise HTTPException(status_code=400, detail="Only qualified leads can have an assessment created.")
 
-    assessment = Assessment(lead_id=lead_id, created_by=SYSTEM_USER_ID, status="in_progress")
+    assessment = Assessment(lead_id=lead_id, created_by=current_user.id, status="in_progress")
     db.add(assessment)
     db.flush()
 
@@ -137,6 +138,7 @@ def approve_assessment(
     payload: AssessmentApprove,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.services.proposal_generator import generate_proposal
 
@@ -145,7 +147,7 @@ def approve_assessment(
         raise HTTPException(status_code=400, detail="Assessment must be pending_approval to approve.")
 
     assessment.status = "approved"
-    assessment.approved_by = SYSTEM_USER_ID
+    assessment.approved_by = current_user.id
     assessment.approved_at = datetime.now(timezone.utc)
     if payload.reviewer_notes:
         assessment.reviewer_notes = payload.reviewer_notes

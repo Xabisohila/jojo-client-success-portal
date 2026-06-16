@@ -18,12 +18,14 @@ class TeamMemberCreate(BaseModel):
     full_name: str
     email: str
     role: str = "sales"   # admin | sales | csm | implementation
+    password: Optional[str] = None
 
 
 class TeamMemberUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 
 class TeamMemberOut(BaseModel):

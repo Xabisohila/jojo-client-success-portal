@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.client import Client, Onboarding, JojoConfig, ImplementationProject, ImplementationTask
+from app.models.user import User
 from app.schemas.client import (
     ClientOut, ClientListItem,
     OnboardingStep1, OnboardingStep2, OnboardingStep3, OnboardingStep4, OnboardingStep5,
@@ -14,7 +16,6 @@ from app.schemas.client import (
 )
 
 router = APIRouter(tags=["clients"])
-SYSTEM_USER = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 def _get_client(db: Session, client_id: uuid.UUID) -> Client:
@@ -139,6 +140,7 @@ def approve_onboarding(
     payload: OnboardingApprove,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.services.config_generator import generate_jojo_config
 
@@ -146,7 +148,7 @@ def approve_onboarding(
     if ob.status != "pending_approval":
         raise HTTPException(400, "Onboarding must be pending_approval to approve.")
     ob.status = "approved"
-    ob.approved_by = SYSTEM_USER
+    ob.approved_by = current_user.id
     ob.approved_at = datetime.now(timezone.utc)
     if payload.reviewer_notes:
         ob.reviewer_notes = payload.reviewer_notes
@@ -213,6 +215,7 @@ def approve_config(
     payload: JojoConfigApprove,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.services.task_generator import generate_implementation_tasks
 
@@ -222,7 +225,7 @@ def approve_config(
     if config.status != "pending_review":
         raise HTTPException(400, "Config must be pending_review to approve.")
     config.status = "approved"
-    config.approved_by = SYSTEM_USER
+    config.approved_by = current_user.id
     config.approved_at = datetime.now(timezone.utc)
     if payload.reviewer_notes:
         config.reviewer_notes = payload.reviewer_notes

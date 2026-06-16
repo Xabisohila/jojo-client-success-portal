@@ -4,9 +4,11 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.deps import get_current_user
+from app.core.security import hash_password
 from app.database import get_db
 from app.config import settings as app_settings
-from app.models.user import User
+from app.models.user import User, UserCredential
 from app.models.settings import SystemSetting
 from app.schemas.settings import (
     SettingOut, TeamMemberCreate, TeamMemberUpdate, TeamMemberOut, IntegrationStatus,
@@ -26,15 +28,15 @@ def get_system_settings(db: Session = Depends(get_db)):
 
 
 @router.patch("/settings/system")
-def update_system_settings(payload: dict, db: Session = Depends(get_db)):
+def update_system_settings(payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     for key, value in payload.items():
         row = db.query(SystemSetting).filter(SystemSetting.key == key).first()
         if row:
             row.value = str(value) if value is not None else ""
             row.updated_at = datetime.now(timezone.utc)
-            row.updated_by = SYSTEM_USER
+            row.updated_by = current_user.id
         else:
-            db.add(SystemSetting(key=key, value=str(value) if value is not None else "", updated_by=SYSTEM_USER))
+            db.add(SystemSetting(key=key, value=str(value) if value is not None else "", updated_by=current_user.id))
     db.commit()
     rows = db.query(SystemSetting).all()
     return {row.key: row.value for row in rows}
@@ -80,6 +82,9 @@ def add_team_member(payload: TeamMemberCreate, db: Session = Depends(get_db)):
         is_active=True,
     )
     db.add(member)
+    db.flush()
+    if payload.password:
+        db.add(UserCredential(user_id=member.id, password_hash=hash_password(payload.password)))
     db.commit()
     db.refresh(member)
     return member
@@ -94,8 +99,17 @@ def update_team_member(user_id: uuid.UUID, payload: TeamMemberUpdate, db: Sessio
         raise HTTPException(404, "Team member not found.")
     if payload.role and payload.role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(VALID_ROLES)}")
-    for k, v in payload.model_dump(exclude_none=True).items():
+    data = payload.model_dump(exclude_none=True)
+    password = data.pop("password", None)
+    for k, v in data.items():
         setattr(member, k, v)
+    if password:
+        creds = db.query(UserCredential).filter(UserCredential.user_id == member.id).first()
+        if creds:
+            creds.password_hash = hash_password(password)
+            creds.updated_at = datetime.now(timezone.utc)
+        else:
+            db.add(UserCredential(user_id=member.id, password_hash=hash_password(password)))
     db.commit()
     db.refresh(member)
     return member

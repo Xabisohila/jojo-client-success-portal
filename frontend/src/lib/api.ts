@@ -4,13 +4,36 @@ import type {
   Client, Onboarding, JojoConfig, ImplementationProject, ImplementationTask,
   GoLiveEvent, CustomerHealth, Checkin, NpsResponse, CSDashboardSummary, ClientHealthSummary,
   Renewal, RenewalListItem, RenewalDashboard, UpsellOpportunity,
-  TeamMember, IntegrationStatus, Paginated,
+  TeamMember, IntegrationStatus, Paginated, AuthUser,
 } from "@/types";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
+
+api.interceptors.response.use(
+  (r) => r,
+  (error) => {
+    const url: string = error?.config?.url || "";
+    const isAuthCall = url.includes("/auth/login") || url.includes("/auth/me");
+    if (error?.response?.status === 401 && !isAuthCall && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+export const login = (email: string, password: string): Promise<AuthUser> =>
+  api.post("/auth/login", { email, password }).then((r) => r.data);
+
+export const logout = (): Promise<void> =>
+  api.post("/auth/logout").then(() => undefined);
+
+export const getMe = (): Promise<AuthUser> =>
+  api.get("/auth/me").then((r) => r.data);
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
 export const getDashboardSummary = (): Promise<DashboardSummary> =>
@@ -266,10 +289,10 @@ export const getIntegrations = (): Promise<IntegrationStatus[]> =>
 export const getTeamMembers = (): Promise<TeamMember[]> =>
   api.get("/settings/team").then((r) => r.data);
 
-export const addTeamMember = (data: { full_name: string; email: string; role: string }): Promise<TeamMember> =>
+export const addTeamMember = (data: { full_name: string; email: string; role: string; password?: string }): Promise<TeamMember> =>
   api.post("/settings/team", data).then((r) => r.data);
 
-export const updateTeamMember = (userId: string, data: { full_name?: string; role?: string; is_active?: boolean }): Promise<TeamMember> =>
+export const updateTeamMember = (userId: string, data: { full_name?: string; role?: string; is_active?: boolean; password?: string }): Promise<TeamMember> =>
   api.patch(`/settings/team/${userId}`, data).then((r) => r.data);
 
 export const deactivateTeamMember = (userId: string): Promise<void> =>

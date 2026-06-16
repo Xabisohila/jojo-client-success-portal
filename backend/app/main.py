@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings as app_config
-from app.routers import leads, assessments, proposals, dashboard, clients, customer_success, renewals
+from app.core.deps import get_current_user
+from app.routers import auth, leads, assessments, proposals, dashboard, clients, customer_success, renewals
 from app.routers import settings as settings_router
 
 app = FastAPI(
@@ -20,14 +21,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(leads.router, prefix="/api/v1")
-app.include_router(assessments.router, prefix="/api/v1")
-app.include_router(proposals.router, prefix="/api/v1")
-app.include_router(dashboard.router, prefix="/api/v1")
-app.include_router(clients.router, prefix="/api/v1")
-app.include_router(customer_success.router, prefix="/api/v1")
-app.include_router(renewals.router, prefix="/api/v1")
-app.include_router(settings_router.router, prefix="/api/v1")
+protected = [Depends(get_current_user)]
+
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(leads.router, prefix="/api/v1", dependencies=protected)
+app.include_router(assessments.router, prefix="/api/v1", dependencies=protected)
+app.include_router(proposals.router, prefix="/api/v1", dependencies=protected)
+app.include_router(dashboard.router, prefix="/api/v1", dependencies=protected)
+app.include_router(clients.router, prefix="/api/v1", dependencies=protected)
+app.include_router(customer_success.router, prefix="/api/v1", dependencies=protected)
+app.include_router(renewals.router, prefix="/api/v1", dependencies=protected)
+app.include_router(settings_router.router, prefix="/api/v1", dependencies=protected)
 
 
 @app.get("/api/health")

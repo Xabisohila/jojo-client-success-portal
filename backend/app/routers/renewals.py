@@ -5,16 +5,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.client import Client
 from app.models.renewals import Renewal, UpsellOpportunity
+from app.models.user import User
 from app.schemas.renewals import (
     RenewalCreate, RenewalUpdate, RenewalOut, RenewalListItem, RenewalDashboard,
     UpsellCreate, UpsellUpdate, UpsellOut,
 )
 
 router = APIRouter(tags=["renewals"])
-SYSTEM_USER = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────
@@ -115,11 +116,11 @@ def get_client_renewals(client_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/clients/{client_id}/renewals", response_model=RenewalOut, status_code=201)
-def create_renewal(client_id: uuid.UUID, payload: RenewalCreate, db: Session = Depends(get_db)):
+def create_renewal(client_id: uuid.UUID, payload: RenewalCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(404, "Client not found.")
-    renewal = Renewal(client_id=client_id, created_by=SYSTEM_USER, **payload.model_dump())
+    renewal = Renewal(client_id=client_id, created_by=current_user.id, **payload.model_dump())
     db.add(renewal)
     db.commit()
     db.refresh(renewal)
@@ -127,14 +128,14 @@ def create_renewal(client_id: uuid.UUID, payload: RenewalCreate, db: Session = D
 
 
 @router.patch("/clients/{client_id}/renewals/{renewal_id}", response_model=RenewalOut)
-def update_renewal(client_id: uuid.UUID, renewal_id: uuid.UUID, payload: RenewalUpdate, db: Session = Depends(get_db)):
+def update_renewal(client_id: uuid.UUID, renewal_id: uuid.UUID, payload: RenewalUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     renewal = db.query(Renewal).filter(Renewal.id == renewal_id, Renewal.client_id == client_id).first()
     if not renewal:
         raise HTTPException(404, "Renewal not found.")
     data = payload.model_dump(exclude_none=True)
     if "status" in data and data["status"] == "renewed" and not renewal.renewed_at:
         renewal.renewed_at = datetime.now(timezone.utc)
-        renewal.renewed_by = SYSTEM_USER
+        renewal.renewed_by = current_user.id
     for k, v in data.items():
         setattr(renewal, k, v)
     db.commit()
@@ -150,11 +151,11 @@ def get_upsells(client_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/clients/{client_id}/upsells", response_model=UpsellOut, status_code=201)
-def create_upsell(client_id: uuid.UUID, payload: UpsellCreate, db: Session = Depends(get_db)):
+def create_upsell(client_id: uuid.UUID, payload: UpsellCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(404, "Client not found.")
-    upsell = UpsellOpportunity(client_id=client_id, created_by=SYSTEM_USER, **payload.model_dump())
+    upsell = UpsellOpportunity(client_id=client_id, created_by=current_user.id, **payload.model_dump())
     db.add(upsell)
     db.commit()
     db.refresh(upsell)

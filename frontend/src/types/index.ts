@@ -144,6 +144,11 @@ export interface DashboardSummary {
   proposals_pending_approval: number;
   proposals_sent: number;
   proposals_accepted: number;
+  clients_onboarding: number;
+  clients_implementation: number;
+  clients_go_live: number;
+  clients_active: number;
+  clients_churned: number;
 }
 
 // ── Phase 2 ───────────────────────────────────────────────────────────────
@@ -213,9 +218,9 @@ export interface JojoConfig {
   onboarding_id?: string;
   version: number;
   status: JojoConfigStatus;
-  missed_call_message?: string;
+  greeting_message?: string;
   after_hours_message?: string;
-  conversation_flow?: Record<string, unknown>;
+  call_flow?: Record<string, unknown>;
   booking_rules?: Record<string, unknown>;
   escalation_rules?: unknown[];
   knowledge_base?: Record<string, unknown>;
@@ -441,6 +446,13 @@ export interface TeamMember {
   role: string;
   is_active: boolean;
   created_at: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
 }
 
 export interface IntegrationStatus {

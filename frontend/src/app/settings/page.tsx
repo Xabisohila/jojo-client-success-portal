@@ -33,7 +33,10 @@ const INTEGRATION_COLORS = {
 function TeamTab() {
   const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", role: "sales" });
+  const [form, setForm] = useState({ full_name: "", email: "", role: "sales", password: "" });
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
 
   const { data: members = [], isLoading } = useQuery({ queryKey: ["team"], queryFn: getTeamMembers });
 
@@ -42,7 +45,7 @@ function TeamTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["team"] });
       setShowAdd(false);
-      setForm({ full_name: "", email: "", role: "sales" });
+      setForm({ full_name: "", email: "", role: "sales", password: "" });
       toast.success("Team member added");
     },
     onError: (e: unknown) => {
@@ -58,7 +61,26 @@ function TeamTab() {
 
   const deactivate = useMutation({
     mutationFn: (id: string) => deactivateTeamMember(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["team"] }); toast.success("Member deactivated"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["team"] });
+      setConfirmDeactivateId(null);
+      toast.success("Member deactivated");
+    },
+  });
+
+  const activate = useMutation({
+    mutationFn: (id: string) => updateTeamMember(id, { is_active: true }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["team"] }); toast.success("Member reactivated"); },
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) => updateTeamMember(id, { password }),
+    onSuccess: () => {
+      setResettingId(null);
+      setNewPassword("");
+      toast.success("Password updated");
+    },
+    onError: () => toast.error("Failed to update password"),
   });
 
   const SYSTEM_ID = "00000000-0000-0000-0000-000000000001";
@@ -81,7 +103,7 @@ function TeamTab() {
       {showAdd && (
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
           <h3 className="font-semibold text-gray-900 text-sm">New Team Member</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
               <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -90,6 +112,12 @@ function TeamTab() {
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Initial Password</label>
+              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank to set later"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
@@ -164,11 +192,70 @@ function TeamTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {m.id !== SYSTEM_ID && m.is_active && (
-                      <button onClick={() => deactivate.mutate(m.id)}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium">
-                        Deactivate
-                      </button>
+                    {m.id !== SYSTEM_ID && resettingId === m.id ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <input
+                          type="password"
+                          autoFocus
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="New password"
+                          className="w-36 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                        <button
+                          onClick={() => resetPassword.mutate({ id: m.id, password: newPassword })}
+                          disabled={!newPassword || resetPassword.isPending}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => { setResettingId(null); setNewPassword(""); }}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : m.id !== SYSTEM_ID && confirmDeactivateId === m.id ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="text-xs text-gray-600">Deactivate this account?</span>
+                        <button
+                          onClick={() => deactivate.mutate(m.id)}
+                          disabled={deactivate.isPending}
+                          className="text-xs text-red-600 hover:text-red-700 font-semibold disabled:opacity-50"
+                        >
+                          {deactivate.isPending ? "Deactivating..." : "Confirm"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeactivateId(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 justify-end">
+                        {m.id !== SYSTEM_ID && (
+                          <button onClick={() => { setResettingId(m.id); setNewPassword(""); }}
+                            className="text-xs text-gray-500 hover:text-gray-900 font-medium">
+                            Reset Password
+                          </button>
+                        )}
+                        {m.id !== SYSTEM_ID && (
+                          m.is_active ? (
+                            <button onClick={() => setConfirmDeactivateId(m.id)}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium">
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button onClick={() => activate.mutate(m.id)}
+                              disabled={activate.isPending}
+                              className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50">
+                              Activate
+                            </button>
+                          )
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>

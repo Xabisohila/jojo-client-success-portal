@@ -4,10 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.core.deps import get_current_user
 from app.database import get_db
 from app.models.client import Client, ImplementationProject
 from app.models.customer_success import GoLiveEvent, CustomerHealth, Checkin, NpsResponse
 from app.models.proposal import Proposal
+from app.models.user import User
 from app.schemas.customer_success import (
     GoLiveConfirm, GoLiveEventOut,
     HealthScoreCreate, CustomerHealthOut,
@@ -17,7 +19,6 @@ from app.schemas.customer_success import (
 )
 
 router = APIRouter(tags=["customer-success"])
-SYSTEM_USER = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 def _get_client(db: Session, client_id: uuid.UUID) -> Client:
@@ -168,6 +169,7 @@ def confirm_go_live(
     payload: GoLiveConfirm,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.services.health_scorer import calculate_health_score
 
@@ -177,7 +179,7 @@ def confirm_go_live(
 
     event = GoLiveEvent(
         client_id=client_id,
-        confirmed_by=SYSTEM_USER,
+        confirmed_by=current_user.id,
         actual_go_live=payload.actual_go_live or date.today(),
         jojo_number_confirmed=payload.jojo_number_confirmed,
         call_forwarding_verified=payload.call_forwarding_verified,
@@ -239,6 +241,7 @@ def save_manual_health(
     client_id: uuid.UUID,
     payload: HealthScoreCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     _get_client(db, client_id)
     usage = payload.usage_score or 0
@@ -257,7 +260,7 @@ def save_manual_health(
         roi_score=roi,
         risk_level=risk,
         notes=payload.notes,
-        calculated_by=SYSTEM_USER,
+        calculated_by=current_user.id,
     )
     db.add(score)
     db.commit()
@@ -279,7 +282,7 @@ def list_checkins(client_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/clients/{client_id}/checkins", response_model=CheckinOut)
-def create_checkin(client_id: uuid.UUID, payload: CheckinCreate, db: Session = Depends(get_db)):
+def create_checkin(client_id: uuid.UUID, payload: CheckinCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _get_client(db, client_id)
     checkin = Checkin(
         client_id=client_id,
@@ -289,7 +292,7 @@ def create_checkin(client_id: uuid.UUID, payload: CheckinCreate, db: Session = D
         outcome=payload.outcome,
         action_items=payload.action_items,
         next_checkin_date=payload.next_checkin_date,
-        conducted_by=SYSTEM_USER,
+        conducted_by=current_user.id,
         completed_at=datetime.now(timezone.utc) if payload.outcome else None,
     )
     db.add(checkin)
@@ -334,7 +337,7 @@ def list_nps(client_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/clients/{client_id}/nps", response_model=NpsResponseOut)
-def add_nps(client_id: uuid.UUID, payload: NpsCreate, db: Session = Depends(get_db)):
+def add_nps(client_id: uuid.UUID, payload: NpsCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _get_client(db, client_id)
     response = NpsResponse(
         client_id=client_id,
@@ -342,7 +345,7 @@ def add_nps(client_id: uuid.UUID, payload: NpsCreate, db: Session = Depends(get_
         category=_nps_category(payload.score),
         verbatim=payload.verbatim,
         survey_period=payload.survey_period,
-        recorded_by=SYSTEM_USER,
+        recorded_by=current_user.id,
     )
     db.add(response)
     db.commit()
