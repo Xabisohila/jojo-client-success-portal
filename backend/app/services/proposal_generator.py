@@ -31,6 +31,8 @@ PRICING_TIERS = {
         "setup_fee": 497.00,
         "includes": [
             "Up to 200 calls/month",
+            "WhatsApp message handling",
+            "Missed-call follow-up and callback automation",
             "Appointment booking (Google Calendar)",
             "Lead capture and qualification",
             "FAQ handling (up to 20 FAQs)",
@@ -45,6 +47,8 @@ PRICING_TIERS = {
         "setup_fee": 997.00,
         "includes": [
             "Up to 600 calls/month",
+            "WhatsApp message handling (unlimited)",
+            "Missed-call follow-up and callback automation",
             "Appointment booking (Google Calendar + Outlook)",
             "Advanced lead qualification",
             "FAQ handling (up to 50 FAQs)",
@@ -62,6 +66,8 @@ PRICING_TIERS = {
         "setup_fee": 1997.00,
         "includes": [
             "Unlimited calls",
+            "Unlimited WhatsApp message handling",
+            "Missed-call follow-up and callback automation",
             "All calendar and booking integrations",
             "Advanced qualification workflows",
             "Unlimited FAQs",
@@ -131,7 +137,7 @@ def _estimate_roi(lead: Lead, monthly_fee: float) -> tuple[float, float, str]:
         f"Based on approximately {int(monthly_calls)} calls per month, "
         f"Jojo is estimated to save {int(receptionist_hours_saved)} hours of staff time "
         f"(valued at ${receptionist_cost:,.0f}/month at $28/hr). "
-        f"Additionally, recovering missed after-hours calls is projected to generate "
+        f"Additionally, recovering missed calls, unanswered WhatsApp messages, and after-hours enquiries is projected to generate "
         f"${missed_call_recovery:,.0f}/month in new revenue. "
         f"Total estimated monthly ROI: ${monthly_roi:,.0f} against a Jojo investment of ${monthly_fee:,.0f}/month."
     )
@@ -220,11 +226,11 @@ def _generate_ai_narrative(
     tier_key: str,
     tier: dict,
 ) -> None:
-    prompt = f"""You are a senior sales consultant writing a professional proposal for Jojo AI Receptionist.
+    prompt = f"""You are a senior sales consultant writing a professional proposal for Jojo AI Receptionist, which handles inbound calls, WhatsApp messages, and missed-call follow-up.
 
 Write two sections for this proposal:
 
-1. SCOPE SUMMARY (3–4 sentences): What Jojo will do for this specific business, referencing their industry and call handling needs.
+1. SCOPE SUMMARY (3–4 sentences): What Jojo will do for this specific business, referencing their industry and their call, WhatsApp, and missed-call handling needs.
 2. EXECUTIVE SUMMARY (4–5 sentences): The business case for this client — what problem Jojo solves, the ROI, and the recommended next step.
 
 Client details:
@@ -263,5 +269,5 @@ Respond ONLY with valid JSON:
         proposal.executive_summary = result.get("executive_summary", "")
     except Exception as e:
         logger.warning(f"Claude narrative generation failed for proposal {proposal.id}: {e}")
-        proposal.scope_summary = f"Jojo AI Receptionist will handle inbound calls for {lead.company_name}, providing appointment booking, lead capture, FAQ handling, and after-hours coverage under the {tier['label']} plan."
-        proposal.executive_summary = f"This proposal outlines how Jojo can transform {lead.company_name}'s call handling, delivering an estimated ${proposal.roi_monthly:,.0f}/month in ROI at an investment of ${proposal.monthly_fee:,.0f}/month."
+        proposal.scope_summary = f"Jojo AI Receptionist will handle inbound calls, WhatsApp messages, and missed-call follow-up for {lead.company_name}, providing appointment booking, lead capture, FAQ handling, and after-hours coverage under the {tier['label']} plan."
+        proposal.executive_summary = f"This proposal outlines how Jojo can transform {lead.company_name}'s call, WhatsApp, and missed-call handling, delivering an estimated ${proposal.roi_monthly:,.0f}/month in ROI at an investment of ${proposal.monthly_fee:,.0f}/month."

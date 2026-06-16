@@ -125,7 +125,7 @@ export default function LeadDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><p className="text-gray-500">Industry</p><p className="font-medium">{lead.industry ?? "—"}</p></div>
               <div><p className="text-gray-500">Company Size</p><p className="font-medium">{lead.company_size ?? "—"}</p></div>
-              <div><p className="text-gray-500">Monthly Call Volume</p><p className="font-medium">{lead.monthly_call_volume ?? "—"}</p></div>
+              <div><p className="text-gray-500">Monthly Call + WhatsApp Volume</p><p className="font-medium">{lead.monthly_call_volume ?? "—"}</p></div>
               <div><p className="text-gray-500">Source</p><p className="font-medium capitalize">{lead.source.replace("_", " ")}</p></div>
               <div className="col-span-2"><p className="text-gray-500">Current Solution</p><p className="font-medium">{lead.current_solution ?? "—"}</p></div>
               <div className="col-span-2"><p className="text-gray-500">Pain Points</p><p className="font-medium">{lead.pain_points ?? "—"}</p></div>

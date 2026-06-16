@@ -26,7 +26,7 @@ ASSESSMENT_QUESTIONS = {
     "business": [
         {
             "key": "b1_call_volume",
-            "text": "What is your average daily inbound call volume?",
+            "text": "What is your average daily inbound volume across calls, WhatsApp messages, and missed calls?",
             "max_points": 8,
             "weight": 1.0,
             "options": {
@@ -62,7 +62,7 @@ ASSESSMENT_QUESTIONS = {
         },
         {
             "key": "b4_after_hours",
-            "text": "How are calls currently handled outside of business hours?",
+            "text": "How are calls and WhatsApp messages currently handled outside of business hours?",
             "max_points": 5,
             "weight": 1.0,
             "options": {

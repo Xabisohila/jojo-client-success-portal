@@ -59,7 +59,7 @@ def generate_jojo_config(onboarding_id: uuid.UUID) -> None:
         db.refresh(config)
         logger.info(f"Jojo config {config.id} record created for onboarding {onboarding_id}")
 
-        prompt = f"""You are designing the configuration for Jojo, an AI Receptionist service.
+        prompt = f"""You are designing the configuration for Jojo, an AI Receptionist service that handles inbound phone calls, WhatsApp messages, and missed-call follow-up.
 
 Generate a complete, production-ready Jojo configuration for this business:
 
@@ -155,7 +155,7 @@ The greeting and scripts must sound natural and conversational. Reference the sp
             config.booking_rules = {"calendar_system": ob.calendar_system or "manual", "appointment_fields": ["name", "phone", "reason"]}
             config.escalation_rules = [{"trigger": "complaint", "priority": "high", "action": "take_message"}]
             config.knowledge_base = {"business_name": business, "business_hours": hours_str, "services": services, "faqs": faqs}
-            config.config_summary = f"Jojo will handle inbound calls for {business}, managing bookings, FAQs, and escalations."
+            config.config_summary = f"Jojo will handle inbound calls, WhatsApp messages, and missed-call follow-up for {business}, managing bookings, FAQs, and escalations."
 
         config.status = "pending_review"
         db.commit()

@@ -116,10 +116,10 @@ def score_lead(lead_id: uuid.UUID) -> None:
 Jojo's ideal customer:
 - Small to medium business (1–200 employees)
 - Industries: medical, dental, legal, trades (plumbing, HVAC, electrical), hospitality, real estate, veterinary, salon/spa
-- Call volume: 50+ inbound calls per month
-- Currently handling calls with a human receptionist, voicemail, or no system
+- Contact volume: 50+ inbound calls, WhatsApp messages, and missed calls per month combined
+- Currently handling calls, WhatsApp enquiries, and missed-call follow-up with a human receptionist, voicemail, or no system
 - Decision maker: owner, practice manager, director, or office manager
-- Pain points: missed calls after hours, high receptionist costs, overflow calls, appointment booking inefficiency
+- Pain points: missed calls after hours, unanswered WhatsApp messages, high receptionist costs, overflow calls, appointment booking inefficiency
 
 Score this lead on two dimensions (0–100 each):
 
