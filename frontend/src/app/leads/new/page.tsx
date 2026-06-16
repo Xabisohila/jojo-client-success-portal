@@ -127,12 +127,12 @@ export default function NewLeadPage() {
               </select>
             </Field>
           </div>
-          <Field label="Monthly Call + WhatsApp Volume">
+          <Field label="Monthly Call Volume">
             <select {...register("monthly_call_volume")} className={SELECT}>
               <option value="">Select volume</option>
-              <option value="&lt;100">Less than 100 calls/messages per month</option>
-              <option value="100-500">100–500 calls/messages per month</option>
-              <option value="500+">500+ calls/messages per month</option>
+              <option value="&lt;100">Less than 100 calls/month</option>
+              <option value="100-500">100–500 calls/month</option>
+              <option value="500+">500+ calls/month</option>
             </select>
           </Field>
         </div>

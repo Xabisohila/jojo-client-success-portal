@@ -467,19 +467,15 @@ function ConfigView({ clientId }: { clientId: string }) {
 
       {/* Scripts */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-        <h3 className="font-semibold text-gray-800">Call Scripts</h3>
+        <h3 className="font-semibold text-gray-800">WhatsApp Scripts</h3>
         <div className="space-y-3">
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Opening Greeting</p>
-            <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brand-900 italic">&ldquo;{config.greeting_message}&rdquo;</div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Missed Call WhatsApp Message</p>
+            <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brand-900 italic">&ldquo;{config.missed_call_message}&rdquo;</div>
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">After Hours</p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 italic">&ldquo;{config.after_hours_message}&rdquo;</div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Voicemail Prompt</p>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 italic">&ldquo;{config.voicemail_message}&rdquo;</div>
           </div>
         </div>
       </div>

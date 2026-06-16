@@ -100,10 +100,9 @@ class JojoConfig(Base):
     # generating → draft → pending_review → approved → deployed
 
     # AI-generated content
-    greeting_message: Mapped[Optional[str]] = mapped_column(Text)
+    missed_call_message: Mapped[Optional[str]] = mapped_column(Text)
     after_hours_message: Mapped[Optional[str]] = mapped_column(Text)
-    voicemail_message: Mapped[Optional[str]] = mapped_column(Text)
-    call_flow: Mapped[Optional[dict]] = mapped_column(JSONB)
+    conversation_flow: Mapped[Optional[dict]] = mapped_column(JSONB)
     booking_rules: Mapped[Optional[dict]] = mapped_column(JSONB)
     escalation_rules: Mapped[Optional[list]] = mapped_column(JSONB)
     knowledge_base: Mapped[Optional[dict]] = mapped_column(JSONB)

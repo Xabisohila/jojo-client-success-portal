@@ -59,7 +59,7 @@ def generate_jojo_config(onboarding_id: uuid.UUID) -> None:
         db.refresh(config)
         logger.info(f"Jojo config {config.id} record created for onboarding {onboarding_id}")
 
-        prompt = f"""You are designing the configuration for Jojo, an AI Receptionist service that handles inbound phone calls, WhatsApp messages, and missed-call follow-up.
+        prompt = f"""You are designing the configuration for Jojo, a missed-call recovery service. Jojo has no live voice AI — it never answers or speaks on a phone call. {business}'s existing phone number rings through to staff exactly as it does today. Only when a call goes unanswered, is busy, or fails does Jojo activate: within seconds it sends the caller a WhatsApp text message, and from that point on the entire qualification, FAQ, and booking conversation happens over WhatsApp text — never voice.
 
 Generate a complete, production-ready Jojo configuration for this business:
 
@@ -82,21 +82,19 @@ FAQs ({len(faqs)} total):
 Produce a configuration in this EXACT JSON format:
 
 {{
-  "greeting_message": "<warm opening greeting script — 2-3 sentences>",
-  "after_hours_message": "<after-hours message — acknowledge closed, state hours, offer to take a message or book>",
-  "voicemail_message": "<voicemail prompt — short, friendly, ask for name/number/reason>",
+  "missed_call_message": "<the first WhatsApp text sent to the caller within seconds of a missed call — 2-3 sentences, acknowledges the missed call, asks how to help>",
+  "after_hours_message": "<addendum used when the missed call happened outside business hours — acknowledge closed, state hours, offer to help now over WhatsApp or book for next opening>",
   "config_summary": "<2-3 sentence summary of what this Jojo configuration does for this business>",
-  "call_flow": {{
+  "conversation_flow": {{
     "steps": [
-      {{"id": "greeting", "type": "speak", "text": "<opening line>"}},
+      {{"id": "missed_call_text", "type": "message", "text": "<first WhatsApp message, same as missed_call_message>"}},
       {{"id": "intent", "type": "ask", "question": "<what can I help you with question>", "options": [
         {{"key": "1", "label": "<option 1>", "action": "booking"}},
         {{"key": "2", "label": "<option 2>", "action": "faq"}},
-        {{"key": "0", "label": "Speak to someone", "action": "escalate"}}
+        {{"key": "0", "label": "Speak to a team member", "action": "escalate"}}
       ]}},
       {{"id": "booking", "type": "flow", "steps": [
         {{"id": "collect_name", "type": "ask", "question": "May I have your name please?"}},
-        {{"id": "collect_phone", "type": "ask", "question": "And your best contact number?"}},
         {{"id": "collect_reason", "type": "ask", "question": "What is the appointment for?"}},
         {{"id": "confirm_booking", "type": "action", "action": "create_booking"}}
       ]}}
@@ -105,15 +103,15 @@ Produce a configuration in this EXACT JSON format:
   "booking_rules": {{
     "calendar_system": "{ob.calendar_system or 'manual'}",
     "appointment_fields": ["name", "phone", "email", "reason"],
-    "confirmation_method": "sms",
+    "confirmation_method": "whatsapp",
     "advance_booking_days": 30,
     "min_notice_hours": 2,
     "booking_types": {booking_types}
   }},
   "escalation_rules": [
-    {{"trigger": "complaint", "priority": "high", "action": "transfer", "contact": "{escalation_phone}", "message": "I understand your concern. Let me connect you with someone who can help right away."}},
-    {{"trigger": "urgent_medical", "priority": "critical", "action": "transfer_immediately", "contact": "000", "message": "If this is a medical emergency, please call 000 immediately."}},
-    {{"trigger": "request_manager", "priority": "medium", "action": "take_message", "contact": "{escalation_phone}", "message": "I'll pass your message to our manager and they'll call you back within 2 hours."}}
+    {{"trigger": "complaint", "priority": "high", "action": "notify_staff", "contact": "{escalation_phone}", "message": "I understand your concern — I'll let our team know and someone will call you back right away."}},
+    {{"trigger": "urgent_medical", "priority": "critical", "action": "notify_staff_immediately", "contact": "000", "message": "If this is a medical emergency, please call 000 immediately."}},
+    {{"trigger": "request_manager", "priority": "medium", "action": "notify_staff", "contact": "{escalation_phone}", "message": "I'll pass your message to our manager and they'll call you back within 2 hours."}}
   ],
   "knowledge_base": {{
     "business_name": "{business}",
@@ -129,7 +127,7 @@ Produce a configuration in this EXACT JSON format:
   }}
 }}
 
-The greeting and scripts must sound natural and conversational. Reference the specific business, its services, and the greeting style ({style}). Respond ONLY with valid JSON."""
+All messages must read naturally as WhatsApp text messages, not spoken scripts — short, warm, no phrases like "thank you for calling" or "press 1". The caller's phone number is already known from the missed call, so never ask for it again. Reference the specific business, its services, and the greeting style ({style}). Respond ONLY with valid JSON."""
 
         try:
             response = client.messages.create(
@@ -138,24 +136,22 @@ The greeting and scripts must sound natural and conversational. Reference the sp
                 messages=[{"role": "user", "content": prompt}],
             )
             result = json.loads(response.content[0].text)
-            config.greeting_message = result.get("greeting_message", "")
+            config.missed_call_message = result.get("missed_call_message", "")
             config.after_hours_message = result.get("after_hours_message", "")
-            config.voicemail_message = result.get("voicemail_message", "")
-            config.call_flow = result.get("call_flow", {})
+            config.conversation_flow = result.get("conversation_flow", {})
             config.booking_rules = result.get("booking_rules", {})
             config.escalation_rules = result.get("escalation_rules", [])
             config.knowledge_base = result.get("knowledge_base", {})
             config.config_summary = result.get("config_summary", "")
         except Exception as e:
             logger.warning(f"Claude config generation failed for onboarding {onboarding_id}, using template fallback: {e}")
-            config.greeting_message = f"Thank you for calling {business}. This is Jojo, your virtual assistant. How can I help you today?"
-            config.after_hours_message = f"Thank you for calling {business}. Our office is currently closed. Our hours are {hours_str}. Please leave your name and number and we'll call you back the next business day."
-            config.voicemail_message = f"You've reached {business}. Please leave your name, number, and a brief message after the tone."
-            config.call_flow = {"steps": [{"id": "greeting", "type": "speak", "text": config.greeting_message}]}
-            config.booking_rules = {"calendar_system": ob.calendar_system or "manual", "appointment_fields": ["name", "phone", "reason"]}
-            config.escalation_rules = [{"trigger": "complaint", "priority": "high", "action": "take_message"}]
+            config.missed_call_message = f"Hi! Sorry we missed your call to {business} — this is Jojo. How can I help you today?"
+            config.after_hours_message = f"Thanks for reaching out to {business}. We're closed right now ({hours_str}), but I can help here on WhatsApp or get you booked in for when we reopen."
+            config.conversation_flow = {"steps": [{"id": "missed_call_text", "type": "message", "text": config.missed_call_message}]}
+            config.booking_rules = {"calendar_system": ob.calendar_system or "manual", "appointment_fields": ["name", "phone", "reason"], "confirmation_method": "whatsapp"}
+            config.escalation_rules = [{"trigger": "complaint", "priority": "high", "action": "notify_staff"}]
             config.knowledge_base = {"business_name": business, "business_hours": hours_str, "services": services, "faqs": faqs}
-            config.config_summary = f"Jojo will handle inbound calls, WhatsApp messages, and missed-call follow-up for {business}, managing bookings, FAQs, and escalations."
+            config.config_summary = f"Jojo will text {business}'s missed callers on WhatsApp within seconds, then handle bookings, FAQs, and escalations entirely over text."
 
         config.status = "pending_review"
         db.commit()

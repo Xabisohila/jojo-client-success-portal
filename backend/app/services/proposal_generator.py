@@ -30,13 +30,12 @@ PRICING_TIERS = {
         "monthly_fee": 297.00,
         "setup_fee": 497.00,
         "includes": [
-            "Up to 200 calls/month",
-            "WhatsApp message handling",
-            "Missed-call follow-up and callback automation",
-            "Appointment booking (Google Calendar)",
+            "Up to 200 calls/month covered",
+            "Instant WhatsApp follow-up on every missed call",
+            "Appointment booking via WhatsApp (Google Calendar)",
             "Lead capture and qualification",
             "FAQ handling (up to 20 FAQs)",
-            "After-hours call handling",
+            "After-hours missed-call recovery",
             "Email notifications",
             "Monthly performance report",
         ],
@@ -46,16 +45,15 @@ PRICING_TIERS = {
         "monthly_fee": 597.00,
         "setup_fee": 997.00,
         "includes": [
-            "Up to 600 calls/month",
-            "WhatsApp message handling (unlimited)",
-            "Missed-call follow-up and callback automation",
-            "Appointment booking (Google Calendar + Outlook)",
+            "Up to 600 calls/month covered",
+            "Instant WhatsApp follow-up on every missed call",
+            "Appointment booking via WhatsApp (Google Calendar + Outlook)",
             "Advanced lead qualification",
             "FAQ handling (up to 50 FAQs)",
-            "After-hours and overflow handling",
+            "After-hours and overflow missed-call recovery",
             "CRM integration (HubSpot or Zoho)",
-            "Call escalation rules",
-            "SMS notifications",
+            "WhatsApp escalation rules",
+            "SMS notifications to staff",
             "Weekly performance report",
             "Dedicated onboarding specialist",
         ],
@@ -65,16 +63,15 @@ PRICING_TIERS = {
         "monthly_fee": 1197.00,
         "setup_fee": 1997.00,
         "includes": [
-            "Unlimited calls",
-            "Unlimited WhatsApp message handling",
-            "Missed-call follow-up and callback automation",
+            "Unlimited calls covered",
+            "Instant WhatsApp follow-up on every missed call",
             "All calendar and booking integrations",
             "Advanced qualification workflows",
             "Unlimited FAQs",
             "Multi-location support",
             "Custom CRM integration",
-            "Advanced escalation rules",
-            "SMS + email + webhook notifications",
+            "Advanced WhatsApp escalation rules",
+            "SMS + email + webhook notifications to staff",
             "Custom reporting dashboard",
             "Priority support",
             "Quarterly success review",
@@ -127,18 +124,21 @@ def _estimate_roi(lead: Lead, monthly_fee: float) -> tuple[float, float, str]:
     else:
         daily_calls = 5
 
+    # Jojo never touches answered calls — staff field those exactly as before.
+    # Its entire value comes from the slice of calls that get missed: it texts
+    # those callers on WhatsApp instantly instead of them going to voicemail or nowhere.
     monthly_calls = daily_calls * 22
-    receptionist_hours_saved = monthly_calls * 0.08  # ~5 min per call
-    receptionist_cost = receptionist_hours_saved * 28  # $28/hr avg
-    missed_call_recovery = monthly_calls * 0.15 * 150 * 0.3  # 15% missed, $150 avg value, 30% convert
-    monthly_roi = receptionist_cost + missed_call_recovery
+    missed_calls = monthly_calls * 0.15  # ~15% of calls go unanswered/busy/failed
+    callback_hours_saved = missed_calls * 0.1  # ~6 min of manual callback/voicemail-checking time saved per missed call
+    callback_labor_savings = callback_hours_saved * 28  # $28/hr avg
+    missed_call_recovery = missed_calls * 150 * 0.3  # $150 avg value, 30% of recovered missed callers convert
+    monthly_roi = callback_labor_savings + missed_call_recovery
     annual_roi = monthly_roi * 12
     rationale = (
-        f"Based on approximately {int(monthly_calls)} calls per month, "
-        f"Jojo is estimated to save {int(receptionist_hours_saved)} hours of staff time "
-        f"(valued at ${receptionist_cost:,.0f}/month at $28/hr). "
-        f"Additionally, recovering missed calls, unanswered WhatsApp messages, and after-hours enquiries is projected to generate "
-        f"${missed_call_recovery:,.0f}/month in new revenue. "
+        f"Based on approximately {int(monthly_calls)} calls per month, an estimated {int(missed_calls)} are missed. "
+        f"Jojo's instant WhatsApp follow-up recovers these missed calls — saving {callback_hours_saved:.1f} hours/month "
+        f"of manual callback time (valued at ${callback_labor_savings:,.0f}/month at $28/hr) and converting recovered "
+        f"missed callers into an estimated ${missed_call_recovery:,.0f}/month in new revenue. "
         f"Total estimated monthly ROI: ${monthly_roi:,.0f} against a Jojo investment of ${monthly_fee:,.0f}/month."
     )
     return round(monthly_roi, 2), round(annual_roi, 2), rationale
@@ -226,11 +226,11 @@ def _generate_ai_narrative(
     tier_key: str,
     tier: dict,
 ) -> None:
-    prompt = f"""You are a senior sales consultant writing a professional proposal for Jojo AI Receptionist, which handles inbound calls, WhatsApp messages, and missed-call follow-up.
+    prompt = f"""You are a senior sales consultant writing a professional proposal for Jojo, a missed-call recovery service. Jojo does not answer phone calls live — calls keep ringing through to staff exactly as today. When a call is missed, Jojo instantly texts the caller on WhatsApp and handles qualification, FAQs, and booking entirely over WhatsApp text.
 
 Write two sections for this proposal:
 
-1. SCOPE SUMMARY (3–4 sentences): What Jojo will do for this specific business, referencing their industry and their call, WhatsApp, and missed-call handling needs.
+1. SCOPE SUMMARY (3–4 sentences): What Jojo will do for this specific business, referencing their industry and how it will recover their missed calls via WhatsApp.
 2. EXECUTIVE SUMMARY (4–5 sentences): The business case for this client — what problem Jojo solves, the ROI, and the recommended next step.
 
 Client details:
@@ -269,5 +269,5 @@ Respond ONLY with valid JSON:
         proposal.executive_summary = result.get("executive_summary", "")
     except Exception as e:
         logger.warning(f"Claude narrative generation failed for proposal {proposal.id}: {e}")
-        proposal.scope_summary = f"Jojo AI Receptionist will handle inbound calls, WhatsApp messages, and missed-call follow-up for {lead.company_name}, providing appointment booking, lead capture, FAQ handling, and after-hours coverage under the {tier['label']} plan."
-        proposal.executive_summary = f"This proposal outlines how Jojo can transform {lead.company_name}'s call, WhatsApp, and missed-call handling, delivering an estimated ${proposal.roi_monthly:,.0f}/month in ROI at an investment of ${proposal.monthly_fee:,.0f}/month."
+        proposal.scope_summary = f"Jojo will instantly text {lead.company_name}'s missed callers on WhatsApp, then handle appointment booking, lead capture, FAQ handling, and after-hours coverage entirely over WhatsApp text under the {tier['label']} plan."
+        proposal.executive_summary = f"This proposal outlines how Jojo can recover {lead.company_name}'s missed calls via WhatsApp, delivering an estimated ${proposal.roi_monthly:,.0f}/month in ROI at an investment of ${proposal.monthly_fee:,.0f}/month."

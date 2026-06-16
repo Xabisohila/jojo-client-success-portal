@@ -111,15 +111,15 @@ def score_lead(lead_id: uuid.UUID) -> None:
 
         seed = _rule_based_score(lead)
 
-        prompt = f"""You are a sales qualification expert for Jojo, an AI Receptionist service.
+        prompt = f"""You are a sales qualification expert for Jojo, a missed-call recovery service. Jojo doesn't answer calls live — it lets calls ring through to staff as normal, and only texts the caller on WhatsApp when a call is missed, handling qualification and booking entirely over WhatsApp text from there.
 
 Jojo's ideal customer:
 - Small to medium business (1–200 employees)
 - Industries: medical, dental, legal, trades (plumbing, HVAC, electrical), hospitality, real estate, veterinary, salon/spa
-- Contact volume: 50+ inbound calls, WhatsApp messages, and missed calls per month combined
-- Currently handling calls, WhatsApp enquiries, and missed-call follow-up with a human receptionist, voicemail, or no system
+- Call volume: 50+ inbound calls per month (the more calls, the more missed calls Jojo can recover)
+- Currently losing missed calls to voicemail or nothing, with no automated follow-up
 - Decision maker: owner, practice manager, director, or office manager
-- Pain points: missed calls after hours, unanswered WhatsApp messages, high receptionist costs, overflow calls, appointment booking inefficiency
+- Pain points: missed calls after hours, lost leads from unanswered calls, high receptionist costs, overflow calls, appointment booking inefficiency
 
 Score this lead on two dimensions (0–100 each):
 

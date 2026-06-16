@@ -213,10 +213,9 @@ export interface JojoConfig {
   onboarding_id?: string;
   version: number;
   status: JojoConfigStatus;
-  greeting_message?: string;
+  missed_call_message?: string;
   after_hours_message?: string;
-  voicemail_message?: string;
-  call_flow?: Record<string, unknown>;
+  conversation_flow?: Record<string, unknown>;
   booking_rules?: Record<string, unknown>;
   escalation_rules?: unknown[];
   knowledge_base?: Record<string, unknown>;

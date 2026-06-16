@@ -143,10 +143,9 @@ class OnboardingOut(BaseModel):
 # ── Jojo Config ───────────────────────────────────────────────────────────
 
 class JojoConfigUpdate(BaseModel):
-    greeting_message: Optional[str] = None
+    missed_call_message: Optional[str] = None
     after_hours_message: Optional[str] = None
-    voicemail_message: Optional[str] = None
-    call_flow: Optional[dict] = None
+    conversation_flow: Optional[dict] = None
     booking_rules: Optional[dict] = None
     escalation_rules: Optional[list] = None
     knowledge_base: Optional[dict] = None
@@ -164,10 +163,9 @@ class JojoConfigOut(BaseModel):
     onboarding_id: Optional[uuid.UUID]
     version: int
     status: str
-    greeting_message: Optional[str]
+    missed_call_message: Optional[str]
     after_hours_message: Optional[str]
-    voicemail_message: Optional[str]
-    call_flow: Optional[Any]
+    conversation_flow: Optional[Any]
     booking_rules: Optional[Any]
     escalation_rules: Optional[Any]
     knowledge_base: Optional[Any]

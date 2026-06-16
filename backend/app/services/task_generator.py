@@ -17,33 +17,36 @@ SYSTEM_USER = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 # Standard task definitions — tuple: (title, description, category, priority, day_offset)
+# Note: Jojo never answers calls live. The Twilio number rings the client's real phone first;
+# Jojo only activates — via WhatsApp text — once a call is missed.
 BASE_TASKS = [
     # Setup
-    ("Provision Jojo phone number", "Request and assign a dedicated Jojo phone number for call forwarding.", "setup", "critical", 0),
-    ("Configure call forwarding", "Set up call forwarding from client's existing number to the Jojo number.", "setup", "critical", 1),
-    ("Upload greeting scripts to Jojo", "Load the AI-generated greeting, after-hours, and voicemail scripts into the Jojo platform.", "setup", "high", 2),
-    ("Configure business hours in Jojo", "Set operating hours and timezone so Jojo switches between business/after-hours modes correctly.", "setup", "high", 2),
-    ("Set after-hours handling rules", "Configure what Jojo does outside business hours: take message, book appointment, or refer to emergency contact.", "setup", "high", 3),
+    ("Provision Jojo Twilio number", "Request and assign a dedicated Twilio number to front the client's calls and detect missed calls.", "setup", "critical", 0),
+    ("Configure call forwarding to practice", "Set the Twilio number to ring the client's existing phone/landline for ~20 seconds before treating the call as missed.", "setup", "critical", 1),
+    ("Upload missed-call WhatsApp scripts to Jojo", "Load the AI-generated missed-call and after-hours WhatsApp message scripts into the Jojo platform.", "setup", "high", 2),
+    ("Configure business hours in Jojo", "Set operating hours and timezone so Jojo sends the correct after-hours WhatsApp message when a call is missed outside business hours.", "setup", "high", 2),
+    ("Set after-hours handling rules", "Configure what Jojo's WhatsApp follow-up offers outside business hours: take a message, book an appointment, or refer to an emergency contact.", "setup", "high", 3),
 
     # Configuration
     ("Upload knowledge base and FAQs", "Import the approved FAQs and service information into the Jojo knowledge base.", "configuration", "high", 3),
-    ("Configure booking rules", "Set appointment types, collection fields, advance booking window, and confirmation method.", "configuration", "high", 4),
-    ("Configure escalation rules", "Set up triggers and actions for complaint handling, urgent calls, and manager escalations.", "configuration", "high", 4),
+    ("Configure booking rules", "Set appointment types, collection fields, advance booking window, and confirmation method for the WhatsApp booking flow.", "configuration", "high", 4),
+    ("Configure escalation rules", "Set up triggers and actions for complaint handling, urgent enquiries, and manager escalation notifications raised during a WhatsApp conversation.", "configuration", "high", 4),
 
     # Testing
-    ("Internal test — business hours call", "Call Jojo during business hours and verify: greeting, FAQ responses, booking flow.", "testing", "critical", 7),
-    ("Internal test — after-hours call", "Call Jojo after hours and verify: after-hours message, message capture, voicemail.", "testing", "critical", 7),
-    ("Internal test — booking flow end-to-end", "Test full booking: name/phone/reason collection, calendar entry creation, confirmation.", "testing", "critical", 8),
-    ("Internal test — escalation flow", "Test escalation triggers: complaint keyword, urgent call, manager request.", "testing", "high", 8),
-    ("Internal test — FAQ responses", "Verify Jojo answers the top 5 FAQs correctly and accurately.", "testing", "high", 9),
+    ("Internal test — call answered normally", "Call the practice number during business hours and confirm it rings through to staff exactly as before, with no Jojo intervention.", "testing", "critical", 7),
+    ("Internal test — missed call triggers WhatsApp", "Let a test call go unanswered during business hours and verify the caller receives the missed-call WhatsApp message within seconds.", "testing", "critical", 7),
+    ("Internal test — missed call after hours", "Let a test call go unanswered outside business hours and verify the WhatsApp follow-up correctly references closed hours.", "testing", "critical", 7),
+    ("Internal test — booking flow end-to-end", "Test the full WhatsApp booking flow: name/reason collection, calendar entry creation, confirmation.", "testing", "critical", 8),
+    ("Internal test — escalation flow", "Test escalation triggers over WhatsApp: complaint keyword, urgent enquiry, manager request.", "testing", "high", 8),
+    ("Internal test — FAQ responses", "Verify Jojo answers the top 5 FAQs correctly and accurately over WhatsApp.", "testing", "high", 9),
 
     # Training
-    ("Staff briefing — what Jojo handles", "Brief all staff on what Jojo will and won't handle. Distribute one-page summary.", "training", "high", 10),
-    ("Client admin training — reporting dashboard", "Train the client champion on accessing Jojo call logs and performance reports.", "training", "medium", 11),
+    ("Staff briefing — what Jojo handles", "Brief all staff that Jojo never answers calls live — it only follows up missed calls via WhatsApp. Distribute a one-page summary.", "training", "high", 10),
+    ("Client admin training — reporting dashboard", "Train the client champion on accessing Jojo's missed-call and WhatsApp conversation logs and performance reports.", "training", "medium", 11),
 
     # Sign-off
     ("Client UAT sign-off", "Client reviews and signs off on Jojo's behaviour via the UAT checklist.", "sign_off", "critical", 12),
-    ("Go-live approval", "Internal team signs off that all tasks are complete and Jojo is ready for live calls.", "sign_off", "critical", 13),
+    ("Go-live approval", "Internal team signs off that all tasks are complete and Jojo is ready to handle live missed calls.", "sign_off", "critical", 13),
 ]
 
 INTEGRATION_TASKS = {
