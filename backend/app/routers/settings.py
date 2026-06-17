@@ -68,7 +68,9 @@ def list_team(db: Session = Depends(get_db)):
 
 
 @router.post("/settings/team", response_model=TeamMemberOut, status_code=201)
-def add_team_member(payload: TeamMemberCreate, db: Session = Depends(get_db)):
+def add_team_member(payload: TeamMemberCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Only admins can add team members.")
     if payload.role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(VALID_ROLES)}")
     existing = db.query(User).filter(User.email == payload.email).first()
@@ -91,7 +93,9 @@ def add_team_member(payload: TeamMemberCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/settings/team/{user_id}", response_model=TeamMemberOut)
-def update_team_member(user_id: uuid.UUID, payload: TeamMemberUpdate, db: Session = Depends(get_db)):
+def update_team_member(user_id: uuid.UUID, payload: TeamMemberUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Only admins can modify team members.")
     if user_id == SYSTEM_USER:
         raise HTTPException(400, "Cannot edit the system user.")
     member = db.query(User).filter(User.id == user_id).first()
@@ -116,7 +120,9 @@ def update_team_member(user_id: uuid.UUID, payload: TeamMemberUpdate, db: Sessio
 
 
 @router.delete("/settings/team/{user_id}", status_code=204)
-def deactivate_team_member(user_id: uuid.UUID, db: Session = Depends(get_db)):
+def deactivate_team_member(user_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Only admins can deactivate team members.")
     if user_id == SYSTEM_USER:
         raise HTTPException(400, "Cannot deactivate the system user.")
     member = db.query(User).filter(User.id == user_id).first()

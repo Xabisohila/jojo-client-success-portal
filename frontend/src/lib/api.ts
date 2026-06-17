@@ -35,6 +35,9 @@ export const logout = (): Promise<void> =>
 export const getMe = (): Promise<AuthUser> =>
   api.get("/auth/me").then((r) => r.data);
 
+export const changeOwnPassword = (currentPassword: string, newPassword: string): Promise<void> =>
+  api.patch("/auth/me/password", { current_password: currentPassword, new_password: newPassword }).then(() => undefined);
+
 // ── Dashboard ─────────────────────────────────────────────────────────────
 export const getDashboardSummary = (): Promise<DashboardSummary> =>
   api.get("/dashboard/summary").then((r) => r.data);

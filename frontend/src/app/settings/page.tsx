@@ -4,9 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getSystemSettings, updateSystemSettings,
   getTeamMembers, addTeamMember, updateTeamMember, deactivateTeamMember,
-  getIntegrations,
+  changeOwnPassword, getIntegrations,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 import type { TeamMember, IntegrationStatus } from "@/types";
 import { Users, Settings, Plug, CheckCircle, XCircle, Plus, Shield } from "lucide-react";
 import { toast } from "sonner";
@@ -32,11 +33,15 @@ const INTEGRATION_COLORS = {
 
 function TeamTab() {
   const qc = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "admin";
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", role: "sales", password: "" });
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
+  const [changingOwnPassword, setChangingOwnPassword] = useState(false);
+  const [ownPasswordForm, setOwnPasswordForm] = useState({ current: "", next: "" });
 
   const { data: members = [], isLoading } = useQuery({ queryKey: ["team"], queryFn: getTeamMembers });
 
@@ -83,6 +88,19 @@ function TeamTab() {
     onError: () => toast.error("Failed to update password"),
   });
 
+  const changeMyPassword = useMutation({
+    mutationFn: () => changeOwnPassword(ownPasswordForm.current, ownPasswordForm.next),
+    onSuccess: () => {
+      setChangingOwnPassword(false);
+      setOwnPasswordForm({ current: "", next: "" });
+      toast.success("Password changed");
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || "Failed to change password");
+    },
+  });
+
   const SYSTEM_ID = "00000000-0000-0000-0000-000000000001";
 
   return (
@@ -92,12 +110,14 @@ function TeamTab() {
           <h2 className="font-semibold text-gray-900">Team Members</h2>
           <p className="text-sm text-gray-500 mt-0.5">Manage who has access to the Jojo portal</p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700"
-        >
-          <Plus className="w-4 h-4" /> Add Member
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700"
+          >
+            <Plus className="w-4 h-4" /> Add Member
+          </button>
+        )}
       </div>
 
       {showAdd && (
@@ -173,7 +193,7 @@ function TeamTab() {
                       <span className={cn("px-2 py-1 rounded-full text-xs font-medium", ROLE_COLORS[m.role])}>
                         {ROLE_LABELS[m.role] ?? m.role}
                       </span>
-                    ) : (
+                    ) : isAdmin ? (
                       <select
                         value={m.role}
                         onChange={(e) => changeRole.mutate({ id: m.id, role: e.target.value })}
@@ -184,6 +204,10 @@ function TeamTab() {
                         <option value="implementation">Implementation</option>
                         <option value="admin">Admin</option>
                       </select>
+                    ) : (
+                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", ROLE_COLORS[m.role])}>
+                        {ROLE_LABELS[m.role] ?? m.role}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -192,7 +216,38 @@ function TeamTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {m.id !== SYSTEM_ID && resettingId === m.id ? (
+                    {m.id === currentUser?.id && changingOwnPassword ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <input
+                          type="password"
+                          autoFocus
+                          value={ownPasswordForm.current}
+                          onChange={(e) => setOwnPasswordForm((f) => ({ ...f, current: e.target.value }))}
+                          placeholder="Current password"
+                          className="w-32 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                        <input
+                          type="password"
+                          value={ownPasswordForm.next}
+                          onChange={(e) => setOwnPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                          placeholder="New password"
+                          className="w-32 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                        <button
+                          onClick={() => changeMyPassword.mutate()}
+                          disabled={!ownPasswordForm.current || !ownPasswordForm.next || changeMyPassword.isPending}
+                          className="text-xs text-brand-600 hover:text-brand-700 font-medium disabled:opacity-50"
+                        >
+                          {changeMyPassword.isPending ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => { setChangingOwnPassword(false); setOwnPasswordForm({ current: "", next: "" }); }}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : isAdmin && m.id !== SYSTEM_ID && resettingId === m.id ? (
                       <div className="flex items-center gap-2 justify-end">
                         <input
                           type="password"
@@ -216,7 +271,7 @@ function TeamTab() {
                           Cancel
                         </button>
                       </div>
-                    ) : m.id !== SYSTEM_ID && confirmDeactivateId === m.id ? (
+                    ) : isAdmin && m.id !== SYSTEM_ID && confirmDeactivateId === m.id ? (
                       <div className="flex items-center gap-2 justify-end">
                         <span className="text-xs text-gray-600">Deactivate this account?</span>
                         <button
@@ -235,25 +290,33 @@ function TeamTab() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 justify-end">
-                        {m.id !== SYSTEM_ID && (
-                          <button onClick={() => { setResettingId(m.id); setNewPassword(""); }}
+                        {m.id === currentUser?.id && (
+                          <button onClick={() => setChangingOwnPassword(true)}
                             className="text-xs text-gray-500 hover:text-gray-900 font-medium">
-                            Reset Password
+                            Change Password
                           </button>
                         )}
-                        {m.id !== SYSTEM_ID && (
-                          m.is_active ? (
-                            <button onClick={() => setConfirmDeactivateId(m.id)}
-                              className="text-xs text-red-500 hover:text-red-700 font-medium">
-                              Deactivate
-                            </button>
-                          ) : (
-                            <button onClick={() => activate.mutate(m.id)}
-                              disabled={activate.isPending}
-                              className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50">
-                              Activate
-                            </button>
-                          )
+                        {isAdmin && m.id !== SYSTEM_ID && (
+                          <>
+                            {m.id !== currentUser?.id && (
+                              <button onClick={() => { setResettingId(m.id); setNewPassword(""); }}
+                                className="text-xs text-gray-500 hover:text-gray-900 font-medium">
+                                Reset Password
+                              </button>
+                            )}
+                            {m.is_active ? (
+                              <button onClick={() => setConfirmDeactivateId(m.id)}
+                                className="text-xs text-red-500 hover:text-red-700 font-medium">
+                                Deactivate
+                              </button>
+                            ) : (
+                              <button onClick={() => activate.mutate(m.id)}
+                                disabled={activate.isPending}
+                                className="text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-50">
+                                Activate
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
@@ -294,12 +357,19 @@ function SystemTab() {
     setDirty(true);
   }
 
-  const FIELDS = [
+  const TEXT_FIELDS = [
     { key: "company_name", label: "Company Name", type: "text" },
-    { key: "company_timezone", label: "Default Timezone", type: "text" },
     { key: "notification_email", label: "Notification Email", type: "email" },
     { key: "slack_webhook_url", label: "Slack Webhook URL", type: "url", placeholder: "https://hooks.slack.com/..." },
     { key: "renewal_reminder_days", label: "Renewal Reminder (days before)", type: "number" },
+  ];
+
+  const TIMEZONES = [
+    { group: "Africa", options: ["Africa/Johannesburg", "Africa/Cairo", "Africa/Lagos", "Africa/Nairobi", "Africa/Harare", "Africa/Accra"] },
+    { group: "Europe", options: ["Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Amsterdam"] },
+    { group: "Americas", options: ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Sao_Paulo"] },
+    { group: "Asia / Pacific", options: ["Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"] },
+    { group: "UTC", options: ["UTC"] },
   ];
 
   return (
@@ -310,7 +380,24 @@ function SystemTab() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-        {FIELDS.map(({ key, label, type, placeholder }) => (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Default Timezone</label>
+          <select
+            value={merged["company_timezone"] ?? "Africa/Johannesburg"}
+            onChange={(e) => set("company_timezone", e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            {TIMEZONES.map(({ group, options }) => (
+              <optgroup key={group} label={group}>
+                {options.map((tz) => (
+                  <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+
+        {TEXT_FIELDS.map(({ key, label, type, placeholder }) => (
           <div key={key}>
             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
             <input
